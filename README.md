@@ -1,110 +1,224 @@
-# CS768 Mid-Semester Project
-## On the Bottleneck of Graph Neural Networks and its Practical Implications
+# CS768 – On the Bottleneck of GNNs and its Practical Implications
 
-### Authors
-- Vijaya Raghavendra S (23B1042)
-- Ritwik Bavurupudi (23B0954)
-- Tharun Tej Banoth (23B0918)
+**Authors:** Vijaya Raghavendra S (23B1042) · Ritwik Bavurupudi (23B0954) · Tharun Tej Banoth (23B0918)
 
 ---
 
 ## Project Overview
 
-Graph Neural Networks (GNNs) are widely used for learning from graph-structured data such as social networks, molecular graphs, and program structures. However, training deep GNNs to capture **long-range dependencies** remains challenging.
+This repository empirically investigates the **over-squashing** bottleneck in Graph Neural Networks, reproducing and extending the experiments from:
 
-This project studies a fundamental limitation in message-passing GNN architectures known as **over-squashing**, where an exponentially growing amount of information from distant nodes is compressed into fixed-size node embeddings.
-
-Our goal is to analyze the theoretical causes of this bottleneck and explore architectural approaches that mitigate its effects.
+> Alon, U., & Yahav, E. (2021). *On the Bottleneck of Graph Neural Networks and its Practical Implications.* ICLR 2021.
 
 ---
 
-## Problem Statement
+## Repository Structure
 
-In a standard message-passing Graph Neural Network (GNN), each node updates its representation by aggregating information from its neighbors.
-
-For a graph **G = (V, E)**, the representation of node **v** at layer **k** is computed using:
-- the previous representation of node **v**
-- the representations of its neighboring nodes
-- a learnable neural network function
-
-In simple terms, each layer allows information to travel **one hop further in the graph**.
-
-Therefore, if two nodes are **r hops apart**, the network must have **at least r layers** for information to propagate between them.
-
-However, the number of nodes that influence a given node grows **exponentially** with the number of layers. This expanding region is called the **receptive field**.
-
-As the receptive field grows, the model must compress a large amount of information into a fixed-size vector representation. This compression creates a structural bottleneck known as **over-squashing**.
-
----
-
-## Key Concepts
-
-### Over-Squashing
-Occurs when information from exponentially many nodes must pass through a small set of edges or nodes, forcing excessive compression.
-
-### Over-Smoothing
-Occurs when repeated message passing causes node representations to become indistinguishable.
-
-These are **distinct problems**, though both affect deep GNN performance.
+```
+CS768/
+├── requirements.txt
+├── quick_demo.py                          ← Start here! (~2 min run)
+│
+├── code/
+│   └── gnn_implementations/
+│       ├── models.py                      ← GCN, GIN, GCN+FA, GIN+FA
+│       └── train_utils.py                 ← Training loop, eval, gradient tracking
+│
+└── experiments/
+    └── tree_neighbors_match/
+        ├── dataset.py                     ← Synthetic dataset generator
+        ├── run_experiment.py              ← Full experiment sweep
+        └── visualize.py                   ← Plot results
+```
 
 ---
 
-## Literature Review
+## Setup
 
-Our study is based on the following important works:
+### 1. Create a virtual environment (recommended)
+```bash
+python -m venv venv
+source venv/bin/activate        # Linux/Mac
+# venv\Scripts\activate         # Windows
+```
 
-- **Alon & Yahav (2021)** – Identified the over-squashing bottleneck in GNNs.
-- **Xu et al. (2019)** – Introduced Graph Isomorphism Networks (GIN) and analyzed GNN expressiveness.
-- **Wu et al. (2020)** – Provided a comprehensive survey of GNN architectures.
-- **Bahdanau et al. (2014)** – Introduced attention mechanisms in neural machine translation, inspiring similar solutions for GNN bottlenecks.
+### 2. Install PyTorch (pick one based on your system)
+```bash
+# CPU only
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# CUDA 11.8
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# CUDA 12.1
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+```
+
+### 3. Install PyTorch Geometric
+```bash
+pip install torch-geometric
+```
+
+### 4. Install remaining dependencies
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
-## Proposed Approach
+## Running the Code
 
-We analyze the structural bottleneck in standard GNN architectures and study possible mitigation strategies, including:
-
-- Topological rewiring
-- Virtual nodes
-- Fully-Adjacent (FA) layers enabling global information flow
+All commands should be run from the **CS768/** root directory.
 
 ---
 
-## Future Work
+### Quick Demo (recommended first run, ~2 minutes on CPU)
 
-For the final stage of the project, we plan to:
+Tests depths 2–4 with GIN vs GIN+FA to verify everything works:
 
-- Reproduce **TREE-NEIGHBORS-MATCH experiments** to analyze gradient degradation caused by over-squashing.
-- Implement **Fully-Adjacent (FA) layers** to enable global message passing.
-- Evaluate performance improvements on graph-based datasets such as chemical molecular graphs.
+```bash
+python quick_demo.py
+```
+
+Expected output:
+```
+SUMMARY: Test Accuracy
+   Depth |        GIN |     GIN+FA |   FA Boost
+--------------------------------------------------
+       2 |     0.9800 |     0.9900 |    +0.0100
+       3 |     0.7500 |     0.9700 |    +0.2200
+       4 |     0.2800 |     0.9400 |    +0.6600
+```
+
+---
+
+### Full Experiment Sweep
+
+Reproduces the main result from the paper (depths 2–7, all 4 models):
+
+```bash
+cd experiments/tree_neighbors_match
+python run_experiment.py
+```
+
+With custom settings:
+```bash
+# Specific depths and models
+python run_experiment.py --depths 2 3 4 5 --models gcn gin gin+fa
+
+# Verbose (see per-epoch logs)
+python run_experiment.py --verbose
+
+# Quick single-depth test
+python run_experiment.py --depth_single 4 --num_runs 1 --num_epochs 100
+
+# GPU run (auto-detected, or force CPU)
+python run_experiment.py --no_cuda
+```
+
+Results are saved to `experiments/tree_neighbors_match/results/results.csv`.
+
+---
+
+### Visualize Results
+
+```bash
+cd experiments/tree_neighbors_match
+
+# All plots
+python visualize.py --plot all
+
+# Only the main accuracy curve (needs results.csv first)
+python visualize.py --plot accuracy
+
+# Theoretical receptive field growth (no experiment needed)
+python visualize.py --plot receptive_field
+
+# Gradient norm comparison (runs a mini experiment)
+python visualize.py --plot gradient --depth 5
+```
+
+Plots are saved to `experiments/tree_neighbors_match/results/`.
+
+---
+
+## What the Code Does
+
+### Models (`code/gnn_implementations/models.py`)
+
+| Model    | Description |
+|----------|-------------|
+| `gcn`    | Graph Convolutional Network — mean aggregation, prone to over-squashing |
+| `gin`    | Graph Isomorphism Network — sum aggregation, maximum 1-WL expressivity, but **most** susceptible to over-squashing (Alon & Yahav 2021) |
+| `gcn+fa` | GCN + Fully-Adjacent final layer — global attention bypasses topology |
+| `gin+fa` | GIN + Fully-Adjacent final layer — best of both worlds |
+
+### Experiment (`experiments/tree_neighbors_match/`)
+
+**TREE-NEIGHBORS-MATCH** benchmark:
+- Binary tree of depth `r`
+- Each leaf gets a random label ∈ {0, 1, 2, 3}
+- One leaf is "selected" (encoded via a special bit)
+- Root must predict the selected leaf's label
+- Requires exactly `r` message-passing steps
+- As `r` grows, 2ʳ leaf values must pass through fixed-size bottleneck nodes
+
+**Key expected results:**
+- GCN/GIN accuracy → ~25% (random) as depth increases (**over-squashing**)
+- GCN+FA/GIN+FA maintain high accuracy across all depths (**bottleneck resolved**)
+
+### Gradient Norm Plot
+
+Mechanistic evidence of over-squashing:
+- In plain GIN at large depth, gradients in early layers → 0
+- Information from leaves never reaches the root (gradient doesn't flow back either)
+- In GIN+FA, the FA layer provides a direct gradient path, preventing this
+
+---
+
+## Key Files Explained
+
+### `models.py` — FALayer class
+The `FALayer` implements multi-head self-attention over **all nodes in a graph**:
+```
+Q, K, V projections → Scaled dot-product attention → Residual + LayerNorm
+```
+This is analogous to the Transformer attention (Vaswani et al., 2017) applied
+globally on the graph, completely bypassing graph topology for one step.
+
+### `dataset.py` — TreeNeighborsMatchDataset
+Generates synthetic binary trees using NetworkX and converts them to
+PyTorch Geometric `Data` objects. The dataset is generated on-the-fly
+with a fixed random seed for reproducibility.
+
+### `train_utils.py` — train_model()
+Standard training loop with:
+- Adam optimizer
+- ReduceLROnPlateau scheduler
+- Early stopping
+- Gradient clipping (to isolate over-squashing from exploding gradients)
+
+---
+
+## Hyperparameters
+
+| Parameter     | Default | Notes |
+|---------------|---------|-------|
+| `hidden_dim`  | 64      | Increase for deeper trees |
+| `num_layers`  | = depth | Must equal tree depth to reach leaves |
+| `lr`          | 1e-3    | Adam learning rate |
+| `num_epochs`  | 200     | Max epochs (early stopping applies) |
+| `patience`    | 30      | Early stopping patience |
+| `num_runs`    | 3       | For variance estimation |
+| `batch_size`  | 32      | Graphs per batch |
+| `num_classes` | 4       | Leaf label cardinality |
 
 ---
 
 ## References
 
-1. Alon, U., & Yahav, E. (2021). *On the Bottleneck of Graph Neural Networks and its Practical Implications*. ICLR.  
-2. Gori, M., Monfardini, G., & Scarselli, F. (2005). *A new model for learning in graph domains*. IEEE IJCNN.  
-3. Xu, K., Hu, W., Leskovec, J., & Jegelka, S. (2019). *How Powerful are Graph Neural Networks?*. ICLR.  
-4. Wu, Z. et al. (2020). *A Comprehensive Survey on Graph Neural Networks*. IEEE TNNLS.  
-5. Bahdanau, D., Cho, K., & Bengio, Y. (2014). *Neural Machine Translation by Jointly Learning to Align and Translate*. arXiv.
-
----
-
-## Repository Structure
-CS768/
-│
-├── README.md
-├── report/
-│ └── midsem_report.pdf
-├── experiments/
-│ └── tree_neighbors_match/
-└── code/
-└── gnn_implementations/
-
-
----
-
-## Course
-
-**CS768 – Graph Representation Learning**
-
+1. Alon, U., & Yahav, E. (2021). *On the Bottleneck of Graph Neural Networks and its Practical Implications.* ICLR.
+2. Gori, M., Monfardini, G., & Scarselli, F. (2005). *A new model for learning in graph domains.* IEEE IJCNN.
+3. Xu, K., Hu, W., Leskovec, J., & Jegelka, S. (2019). *How Powerful are Graph Neural Networks?* ICLR.
+4. Wu, Z. et al. (2020). *A Comprehensive Survey on Graph Neural Networks.* IEEE TNNLS.
+5. Bahdanau, D., Cho, K., & Bengio, Y. (2014). *Neural Machine Translation by Jointly Learning to Align and Translate.* arXiv.
