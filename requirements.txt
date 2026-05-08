@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------
+# CS768 – GNN Bottleneck Project
+# Install order matters — read the README before running pip.
+# ---------------------------------------------------------------
+
+# --- Step 1: Install PyTorch FIRST (outside this file) ---------
+# CPU:       pip install torch --index-url https://download.pytorch.org/whl/cpu
+# CUDA 11.8: pip install torch --index-url https://download.pytorch.org/whl/cu118
+# CUDA 12.1: pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+# --- Step 2: Install PyTorch Geometric SECOND (outside this file)
+# pip install torch-geometric
+#
+# NOTE: Do NOT install torch-scatter or torch-sparse manually.
+# PyG >= 2.3 ships its own C++ backend and those legacy packages
+# cause version-conflict errors on most systems. PyG will use
+# pure-Python fallbacks automatically when they are absent.
+
+# --- Step 3: pip install -r requirements.txt -------------------
+
+# Core deep learning
+torch>=2.0.0            # installed in Step 1
+torch-geometric>=2.3.0  # installed in Step 2
+
+# Graph utilities  —  dataset.py: build_binary_tree_graph()
+networkx>=3.0
+
+# Numerics  —  dataset.py, run_experiment.py, visualize.py
+numpy>=1.24.0
+
+# Plotting  —  visualize.py: all four figure functions
+matplotlib>=3.7.0
+
+# Results table / CSV  —  run_experiment.py: run_full_experiment()
+pandas>=2.0.0

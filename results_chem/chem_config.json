@@ -1,0 +1,20 @@
+{
+  "models": [
+    "gcn",
+    "gcn+fa"
+  ],
+  "num_layers": [
+    4
+  ],
+  "hidden_dim": 64,
+  "atom_types": 21,
+  "batch_size": 128,
+  "lr": 0.001,
+  "num_epochs": 200,
+  "patience": 30,
+  "dropout": 0.5,
+  "seed": 42,
+  "num_runs": 3,
+  "output_dir": "results_chem_fixed",
+  "data_root": "./data"
+}
